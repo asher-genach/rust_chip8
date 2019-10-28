@@ -15,12 +15,28 @@ struct OpCode
   opcode:u16, // 2 bytes opcode
 }
 
+impl OpCode
+{
+  fn new(opcode:u16) -> Self
+  {
+    OpCode { opcode }
+  }
+}
+
 //  0x000-0x1FF  - Chip 8 interpreter (contains font set in emu)
 //  0x050-0x0A0  - Used for the built in 4x5 pixel font set (0-F)
 //  0x200-0xFFF  - Program ROM and work RAM
 struct Memory
 {
   memory:[u8;4096], // 4K of memory
+}
+
+impl Memory
+{
+  fn new() -> Self
+  {
+    Memory { memory:[0x0;4096] }
+  }
 }
 
 struct Registers
@@ -30,6 +46,21 @@ struct Registers
   idx_reg:u16,
   delay_timer_reg:u8,
   sound_timer_reg:u8,
+}
+
+impl Registers
+{
+  fn new() -> Self
+  {
+    Registers
+    {
+      gen_purpose_regs:[0x0;16],
+      pc_reg:0x0,
+      idx_reg:0x0,
+      delay_timer_reg:0,
+      sound_timer_reg:0
+    }
+  }
 }
 
 struct Graphics
@@ -66,19 +97,21 @@ struct KeyState
 
 struct Chip8
 {
-  draw_flag:bool,
+  draw_flag: bool,
+  regs:      Registers,
+  memory:    Memory,
 }
 
 impl Chip8
 {
   fn new() -> Self
   {
-    Chip8 { draw_flag:false, }
+    Chip8 { draw_flag:false, regs:Registers::new(), memory:Memory::new() }
   }
 
   fn initialize(&mut self)
   {
-
+    // Initialize registers and memory once.
   }
 
   fn load_game(&mut self, game_name:&str)
@@ -86,9 +119,35 @@ impl Chip8
 
   }
 
+  // Every cycle, the method emulateCycle is called which emulates
+  // one cycle of the Chip 8 CPU. During this cycle, 
+  // the emulator will Fetch, Decode and Execute one opcode.
+  
+  // Fetch opcode:
+  // =============
+  // During this step, the system will fetch one opcode from the
+  // memory at the location specified by the program counter (pc).
+  // In our Chip 8 emulator, data is stored in an array in which
+  // each address contains one byte. As one opcode is 2 bytes long,
+  // we will need to fetch two successive bytes and merge them to
+  // get the actual opcode.
+  fn fetch_opcode(&self) -> OpCode
+  {
+    let first_half:u8   = self.memory.memory[self.regs.pc_reg as usize];
+    let second_half:u8  = self.memory.memory[(self.regs.pc_reg as usize + 1)];
+
+    let val:u16 = ((first_half as u16 ) << 8) | (second_half as u16);
+
+     OpCode::new(val)
+  }
+
   fn emulate_cycle(&mut self)
   {
+    // Fetch opcode
+    // Decode opcode
+    // Execute opcode
 
+    // Update timers
   }
   
   fn is_draw_flag(&self) -> bool
