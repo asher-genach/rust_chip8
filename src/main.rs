@@ -4,6 +4,7 @@ extern crate find_folder;
 use piston_window::*;
 use std::{thread, time};
 use std::fs::File;
+use std::io::Read;
 use std::io::prelude::*;
 
 const SCREEN_WIDTH_PIXELS:u32     = 64;
@@ -89,6 +90,14 @@ struct Stack
   sp:u16,
 }
 
+impl Stack
+{
+  fn new() -> Self
+  {
+    Stack { stack:[0x0;16], sp:0x0 }
+  }
+}
+
 // HEX based 0x0-0xF
 struct KeyState
 {
@@ -97,26 +106,57 @@ struct KeyState
 
 struct Chip8
 {
-  draw_flag: bool,
-  regs:      Registers,
-  memory:    Memory,
+  draw_flag:    bool,
+  regs:         Registers,
+  memory:       Memory,
+  stack:        Stack,
+  curr_opcode:  OpCode,
 }
 
 impl Chip8
 {
   fn new() -> Self
   {
-    Chip8 { draw_flag:false, regs:Registers::new(), memory:Memory::new() }
+    Chip8 { draw_flag:false,
+            regs:Registers::new(),
+            memory:Memory::new(),
+            stack:Stack::new(),
+            curr_opcode:OpCode::new(0x0)
+          }
   }
 
   fn initialize(&mut self)
   {
     // Initialize registers and memory once.
+    self.regs.pc_reg   = 0x200;            // The program counter starts at address 0x200.
+    self.curr_opcode   = OpCode::new(0x0); // Reset current opcode. 
+    self.regs.idx_reg  = 0x0;              // Reset idx register.
+    self.stack.sp      = 0x0;              // Reset stack pointer. 
+
+    // Clear display	
+    // Clear stack
+    // Clear registers V0-VF
+    // Clear memory
+ 
+    // Load fontset
+    /*for(int i = 0; i < 80; ++i)
+      memory[i] = chip8_fontset[i];*/		
+ 
+    // Reset timers
   }
 
-  fn load_game(&mut self, game_name:&str)
+  fn load_game(&mut self, file_name:&str)
   {
+    let mut file = File::open(file_name).unwrap();
+    
+    let mut buffer = [0u8;0xDFF];
+    
+    file.read(&mut buffer).unwrap();
 
+    for idx in 0..0xDFF
+    {
+      self.memory.memory[0x200 + idx] = buffer[idx];      
+    }
   }
 
   // Every cycle, the method emulateCycle is called which emulates
@@ -144,7 +184,9 @@ impl Chip8
   fn emulate_cycle(&mut self)
   {
     // Fetch opcode
+    let cur_opcode = self.fetch_opcode();
     // Decode opcode
+    
     // Execute opcode
 
     // Update timers
