@@ -11,16 +11,34 @@ const SCREEN_WIDTH_PIXELS:u32     = 64;
 const SCREEN_HEIGHT_PIXELS:u32    = 48;
 const PIXEL_SIZE:u32              = 10;
 
+enum OpCodeSymbol
+{
+  UNDEF,
+  ANNN, // Set I to the address NNN
+}
+
 struct OpCode
 {
-  opcode:u16, // 2 bytes opcode
+  val:u16, // 2 bytes opcode
 }
 
 impl OpCode
 {
-  fn new(opcode:u16) -> Self
+  fn new(val:u16) -> Self
   {
-    OpCode { opcode }
+    OpCode { val }
+  }
+
+  fn find_opcode_symbol(&self) -> OpCodeSymbol
+  {
+    if ( self.val & 0xA000 != 0 )
+    {
+      return OpCodeSymbol::ANNN;
+    }
+    else
+    {
+      return OpCodeSymbol::UNDEF;
+    }
   }
 }
 
@@ -156,7 +174,16 @@ impl Chip8
     for idx in 0..0xDFF
     {
       self.memory.memory[0x200 + idx] = buffer[idx];      
+
+      /*      
+      if buffer[idx] > 0
+      {
+        println!("{} {}", buffer[idx], self.memory.memory[0x200+idx]);
+      }
+      */
     }
+
+    println!("Game loaded successfully...");
   }
 
   // Every cycle, the method emulateCycle is called which emulates
@@ -181,15 +208,48 @@ impl Chip8
      OpCode::new(val)
   }
 
+  fn execute_opcode(&mut self, opcode_symbol:OpCodeSymbol, opcode:OpCode)
+  {
+    match opcode_symbol
+    {
+      OpCodeSymbol::ANNN =>
+      {
+        self.regs.idx_reg = opcode.val & 0x0FFF;
+        self.regs.pc_reg  += 2;
+      },
+      _ =>
+      {
+      }
+    }
+  }
+
   fn emulate_cycle(&mut self)
   {
     // Fetch opcode
     let cur_opcode = self.fetch_opcode();
+
     // Decode opcode
+    let  opcode_symbol = cur_opcode.find_opcode_symbol();
     
     // Execute opcode
+    self.execute_opcode( opcode_symbol, cur_opcode );
 
     // Update timers
+    if self.regs.delay_timer_reg > 0
+    {
+      self.regs.delay_timer_reg -= 1;
+    }
+
+    if self.regs.sound_timer_reg > 0
+    {
+      if self.regs.sound_timer_reg == 1
+      {
+        println!("BEEP!");
+      }
+
+      self.regs.sound_timer_reg -= 1;
+    }
+
   }
   
   fn is_draw_flag(&self) -> bool
@@ -262,7 +322,7 @@ impl Emulator
 
 fn main()
 { 
-  Emulator::new().start("snake");
+  Emulator::new().start("pong.rom");
 
-  thread::sleep(time::Duration::from_millis(3000));
+  // thread::sleep(time::Duration::from_millis(3000));
 }
