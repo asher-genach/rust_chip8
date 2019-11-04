@@ -13,8 +13,8 @@ const SCREEN_HEIGHT_PIXELS:u32    = 48;
 const PIXEL_SIZE:u32              = 10;
 
 // TODO:
-// 16 opcodes were implemented out of 35.
-// 19 opcodes need to be implemented.
+// 21 opcodes were implemented out of 35.
+// 14 (or 15 see commented opcode) opcodes need to be implemented.
 
 enum OpCodeSymbol
 {
@@ -503,65 +503,35 @@ impl Chip8
   {
     match opcode_symbol
     {
-      OpCodeSymbol::_ANNN =>
+      OpCodeSymbol::_0NNN =>
       {
-        self.regs.idx_reg = opcode.val & 0x0FFF;
-        self.regs.pc_reg  += 2;
+        // TODO
       },
       
-      OpCodeSymbol::_8XY0 => /* My implementation */
+      OpCodeSymbol::_00E0 =>
       {
-        // Extract X and Y register nums (for VX and VY) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
-        
-        // V[X] = V[Y]
-        self.regs.gen_purpose_regs[reg_num_X] = self.regs.gen_purpose_regs[reg_num_Y]; 
-        
-        // PC += 2
-        self.regs.pc_reg  += 2;
+        // TODO
+        // clear the graphics screen.
       },
       
-      OpCodeSymbol::_8XY1 => /* My implementation */
+      OpCodeSymbol::_00EE =>
       {
-        // Extract X and Y register nums (for VX and VY) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
-        
-        // V[X] = V[X] | V[Y] /* Bitwise Or */
-        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] | 
-                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
-        
-        // PC += 2
-        self.regs.pc_reg  += 2;
-      },
-
-      OpCodeSymbol::_8XY2 => /* My implementation */
-      {
-        // Extract X and Y register nums (for VX and VY) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
-        
-        // V[X] = V[X] & V[Y] /* Bitwise And */
-        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] & 
-                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
-        
-        // PC += 2
-        self.regs.pc_reg  += 2;
+        // Return from a function call. This is my implementation. 
+        self.stack.sp -= 1;
+        self.regs.pc_reg = self.stack.stack[self.stack.sp as usize];
+        self.regs.pc_reg += 2;
       },
       
-      OpCodeSymbol::_8XY3 => /* My implementation */
+      OpCodeSymbol::_1NNN =>
       {
-        // Extract X and Y register nums (for VX and VY) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
-        
-        // V[X] = V[X] ^ V[Y] /* Bitwise Xor */
-        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] ^ 
-                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
-        
-        // PC += 2
-        self.regs.pc_reg  += 2;
+        self.regs.pc_reg = opcode.val & 0x0FFF;
+      },
+      
+      OpCodeSymbol::_2NNN =>
+      {
+        self.stack.stack[self.stack.sp as usize] = self.regs.pc_reg;
+        self.stack.sp += 1;
+        self.regs.pc_reg = opcode.val & 0x0FFF;
       },
       
       OpCodeSymbol::_3XNN =>
@@ -635,11 +605,59 @@ impl Chip8
         self.regs.pc_reg  += 2;
       },
       
-      OpCodeSymbol::_2NNN =>
+      OpCodeSymbol::_8XY0 => /* My implementation */
       {
-        self.stack.stack[self.stack.sp as usize] = self.regs.pc_reg;
-        self.stack.sp += 1;
-        self.regs.pc_reg = opcode.val & 0x0FFF;
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        // V[X] = V[Y]
+        self.regs.gen_purpose_regs[reg_num_X] = self.regs.gen_purpose_regs[reg_num_Y]; 
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      },
+      
+      OpCodeSymbol::_8XY1 => /* My implementation */
+      {
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        // V[X] = V[X] | V[Y] /* Bitwise Or */
+        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] | 
+                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      },
+
+      OpCodeSymbol::_8XY2 => /* My implementation */
+      {
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        // V[X] = V[X] & V[Y] /* Bitwise And */
+        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] & 
+                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      },
+      
+      OpCodeSymbol::_8XY3 => /* My implementation */
+      {
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        // V[X] = V[X] ^ V[Y] /* Bitwise Xor */
+        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] ^ 
+                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
       },
       
       OpCodeSymbol::_8XY4 =>
@@ -665,14 +683,57 @@ impl Chip8
         self.regs.pc_reg  += 2;
       },
       
-      OpCodeSymbol::_FX33 =>
+      OpCodeSymbol::_8XY5 =>
       {
-        let reg_num = ((opcode.val & 0x0F00) >> 8) as usize;
+        // TODO
+      },
+      
+      OpCodeSymbol::_8XY6 =>
+      {
+        // TODO
+      },
+      
+      OpCodeSymbol::_8XY7 =>
+      {
+        // TODO
+      },
+      
+      /*
+       rcaops ??? - missing command. TODO: need to check
+      {
+      },
+      */
 
-        self.memory.memory[self.regs.idx_reg as usize] = self.regs.gen_purpose_regs[reg_num] / 100;
-        self.memory.memory[(self.regs.idx_reg+1) as usize] = (self.regs.gen_purpose_regs[reg_num]/10) % 10;
-        self.memory.memory[(self.regs.idx_reg+2) as usize] = (self.regs.gen_purpose_regs[reg_num] % 100) % 10;
+      OpCodeSymbol::_9XY0 =>
+      {
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        if self.regs.gen_purpose_regs[reg_num_X] != self.regs.gen_purpose_regs[reg_num_Y] 
+        {
+          self.regs.pc_reg  += 4;
+        }
+        else
+        {
+          self.regs.pc_reg  += 2;
+        }
+      }
+      
+      OpCodeSymbol::_ANNN =>
+      {
+        self.regs.idx_reg = opcode.val & 0x0FFF;
         self.regs.pc_reg  += 2;
+      },
+      
+      OpCodeSymbol::_BNNN => /* My implementation */
+      {
+        let NNN = opcode.val & 0x0FFF;
+        self.regs.pc_reg = NNN + (self.regs.gen_purpose_regs[0] as u16); // NNN + V0
+      },
+      
+      OpCodeSymbol::_CXNN =>
+      {
+        //TODO
       },
 
       // Display pixel at position(X,Y)
@@ -739,8 +800,59 @@ impl Chip8
         }
       }
 
+      OpCodeSymbol::_FX07 =>
+      {
+        //TODO
+      },
+
+      OpCodeSymbol::_FX0A =>
+      {
+        //TODO
+      },
+      
+      OpCodeSymbol::_FX15 =>
+      {
+        //TODO
+      },
+      
+      OpCodeSymbol::_FX18 =>
+      {
+        //TODO
+      },
+      
+      OpCodeSymbol::_FX1E =>
+      {
+        //TODO
+      },
+      
+      OpCodeSymbol::_FX29 =>
+      {
+        //TODO
+      },
+      
+      OpCodeSymbol::_FX33 =>
+      {
+        let reg_num = ((opcode.val & 0x0F00) >> 8) as usize;
+
+        self.memory.memory[self.regs.idx_reg as usize] = self.regs.gen_purpose_regs[reg_num] / 100;
+        self.memory.memory[(self.regs.idx_reg+1) as usize] = (self.regs.gen_purpose_regs[reg_num]/10) % 10;
+        self.memory.memory[(self.regs.idx_reg+2) as usize] = (self.regs.gen_purpose_regs[reg_num] % 100) % 10;
+        self.regs.pc_reg  += 2;
+      },
+
+      OpCodeSymbol::_FX55 =>
+      {
+        //TODO
+      },
+      
+      OpCodeSymbol::_FX65 =>
+      {
+        //TODO
+      },
+
       _ =>
       {
+        println!("Error parsing opcode !!!!!");
       }
     }
   }
