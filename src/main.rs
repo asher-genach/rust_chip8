@@ -13,8 +13,8 @@ const SCREEN_HEIGHT_PIXELS:u32    = 48;
 const PIXEL_SIZE:u32              = 10;
 
 // TODO:
-// 13 opcodes were implemented out of 35.
-// 22 opcodes need to be implemented.
+// 16 opcodes were implemented out of 35.
+// 19 opcodes need to be implemented.
 
 enum OpCodeSymbol
 {
@@ -564,6 +564,51 @@ impl Chip8
         self.regs.pc_reg  += 2;
       },
       
+      OpCodeSymbol::_3XNN =>
+      {
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let NN        = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
+        
+        if self.regs.gen_purpose_regs[reg_num_X] == (NN as u8) 
+        {
+          self.regs.pc_reg  += 4;
+        }
+        else
+        {
+          self.regs.pc_reg  += 2;
+        }
+      }
+      
+      OpCodeSymbol::_4XNN =>
+      {
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let NN        = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
+        
+        if self.regs.gen_purpose_regs[reg_num_X] != (NN as u8) 
+        {
+          self.regs.pc_reg  += 4;
+        }
+        else
+        {
+          self.regs.pc_reg  += 2;
+        }
+      }
+      
+      OpCodeSymbol::_5XY0 =>
+      {
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        if self.regs.gen_purpose_regs[reg_num_X] == self.regs.gen_purpose_regs[reg_num_Y] 
+        {
+          self.regs.pc_reg  += 4;
+        }
+        else
+        {
+          self.regs.pc_reg  += 2;
+        }
+      }
+      
       OpCodeSymbol::_6XNN => /* My implementation */
       {
         // Extract X register nums (for VX) out of the opcode.  
@@ -672,7 +717,6 @@ impl Chip8
   
       OpCodeSymbol::_EX9E =>
       {
-
         if self.keys.key[(self.regs.gen_purpose_regs[((opcode.val & 0x0F00) >> 8) as usize]) as usize] != 0
         {
           self.regs.pc_reg  += 4;
