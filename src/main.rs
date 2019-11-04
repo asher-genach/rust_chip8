@@ -12,6 +12,10 @@ const SCREEN_WIDTH_PIXELS:u32     = 64;
 const SCREEN_HEIGHT_PIXELS:u32    = 48;
 const PIXEL_SIZE:u32              = 10;
 
+// TODO:
+// 13 opcodes were implemented out of 35.
+// 22 opcodes need to be implemented.
+
 enum OpCodeSymbol
 {
   UNDEF,
