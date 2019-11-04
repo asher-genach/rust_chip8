@@ -6,6 +6,7 @@ use std::{thread, time};
 use std::fs::File;
 use std::io::Read;
 use std::io::prelude::*;
+use std::fmt;
 
 const SCREEN_WIDTH_PIXELS:u32     = 64;
 const SCREEN_HEIGHT_PIXELS:u32    = 48;
@@ -14,7 +15,41 @@ const PIXEL_SIZE:u32              = 10;
 enum OpCodeSymbol
 {
   UNDEF,
-  ANNN, // Set I to the address NNN
+  _0NNN, //
+  _00E0,
+  _00EE,
+  _1NNN,
+  _2NNN,
+  _3XNN,
+  _4XNN,
+  _5XY0,
+  _6XNN,
+  _7XNN,
+  _8XY0,
+  _8XY1,
+  _8XY2,
+  _8XY3,
+  _8XY4,
+  _8XY5,
+  _8XY6,
+  _8XY7,
+  _8XYE,
+  _9XY0,
+  _ANNN, // Set I to the address NNN
+  _BNNN,
+  _CXNN,
+  _DXYN,
+  _EX9E,
+  _EXA1,
+  _FX07,
+  _FX0A,
+  _FX15,
+  _FX18,
+  _FX1E,
+  _FX29,
+  _FX33,
+  _FX55,
+  _FX65,
 }
 
 struct OpCode
@@ -31,15 +66,238 @@ impl OpCode
 
   fn find_opcode_symbol(&self) -> OpCodeSymbol
   {
-    if ( self.val & 0xA000 != 0 )
+    if ( self.val & 0xF000 == 0x0 ) // The first 4 bits are 0000 (0x0)
     {
-      return OpCodeSymbol::ANNN;
+      if ( self.val & 0x0F00 == 0x0 ) // The second 4 bits are 0000 (0x0)
+      {
+        if ( self.val & 0x00F0 == 0x00E0 ) // The third 4 bits are 1110 (0xE)
+        {
+          if ( self.val & 0x000F == 0x0 )
+          {
+            return OpCodeSymbol::_00E0;
+          }
+          else if ( self.val & 0x000F == 0x000E )
+          {
+            return OpCodeSymbol::_00EE;
+          }
+          else
+          {
+            return OpCodeSymbol::UNDEF;
+          }
+        }
+        else
+        {
+          return OpCodeSymbol::UNDEF; // Error
+        }
+      }
+      else
+      {
+        return OpCodeSymbol::_0NNN;
+      }
+    }
+    else if ( self.val & 0xF000 == 0x1000 )
+    {
+      return OpCodeSymbol::_1NNN;
+    }
+    else if ( self.val & 0xF000 == 0x2000 )
+    {
+      return OpCodeSymbol::_2NNN;
+    }
+    else if ( self.val & 0xF000 == 0x3000 )
+    {
+      return OpCodeSymbol::_3XNN;
+    }
+    else if ( self.val & 0xF000 == 0x4000 )
+    {
+      return OpCodeSymbol::_4XNN;
+    }
+    else if ( self.val & 0xF000 == 0x5000 )
+    {
+      return OpCodeSymbol::_5XY0;
+    }
+    else if ( self.val & 0xF000 == 0x6000 )
+    {
+      return OpCodeSymbol::_6XNN;
+    }
+    else if ( self.val & 0xF000 == 0x7000 )
+    {
+      return OpCodeSymbol::_7XNN;
+    }
+    else if ( self.val & 0xF000 == 0x8000 )
+    {
+      match self.val & 0x000F
+      {
+        0x0 => { return OpCodeSymbol::_8XY0;},
+        0x1 => { return OpCodeSymbol::_8XY1;},
+        0x2 => { return OpCodeSymbol::_8XY2;},
+        0x3 => { return OpCodeSymbol::_8XY3;},
+        0x4 => { return OpCodeSymbol::_8XY4;},
+        0x5 => { return OpCodeSymbol::_8XY5;},
+        0x6 => { return OpCodeSymbol::_8XY6;},
+        0x7 => { return OpCodeSymbol::_8XY7;},
+        0xE => { return OpCodeSymbol::_8XYE;},
+        _   => { return OpCodeSymbol::UNDEF;},
+      }
+    }
+    else if ( self.val & 0xF000 == 0x9000 )
+    {
+      return OpCodeSymbol::_9XY0;
+    }
+    else if ( self.val & 0xF000 == 0xA000 )
+    {
+      return OpCodeSymbol::_ANNN;
+    }
+    else if ( self.val & 0xF000 == 0xB000 )
+    {
+      return OpCodeSymbol::_BNNN;
+    }
+    else if ( self.val & 0xF000 == 0xC000 )
+    {
+      return OpCodeSymbol::_CXNN;
+    }
+    else if ( self.val & 0xF000 == 0xD000 )
+    {
+      return OpCodeSymbol::_DXYN;
+    }
+    else if ( self.val & 0xF000 == 0xE000 )
+    {
+      match self.val & 0x000F
+      {
+        0xE => { return OpCodeSymbol::_EX9E; },
+        0x1 => { return OpCodeSymbol::_EXA1; },
+        _   => { return OpCodeSymbol::UNDEF; },
+      }
+    }
+    else if ( self.val & 0xF000 == 0xF000 )
+    {
+      if ( self.val & 0x000F == 0x7 )
+      {
+        return OpCodeSymbol::_FX07;
+      }
+      else if ( self.val & 0x000F == 0xA )
+      {
+        return OpCodeSymbol::_FX0A;
+      }
+      else if ( self.val & 0x000F == 0x9 )
+      {
+        return OpCodeSymbol::_FX29;
+      }
+      else if ( self.val & 0x000F == 0x3 )
+      {
+        return OpCodeSymbol::_FX33;
+      }
+      else if ( self.val & 0x00F0 == 0x10 )
+      {
+        match self.val & 0x000F
+        {
+          0x5 => { return OpCodeSymbol::_FX15; },
+          0x8 => { return OpCodeSymbol::_FX18; },
+          0xE => { return OpCodeSymbol::_FX1E; },
+          _   => { return OpCodeSymbol::UNDEF; },
+        }
+      }
+      else if ( self.val & 0x00F0 == 0x0050 )
+      {
+        return OpCodeSymbol::_FX55;
+      }
+      else if ( self.val & 0x00F0 == 0x0060 )
+      {
+        return OpCodeSymbol::_FX65;
+      }
+      else
+      {
+        return OpCodeSymbol::UNDEF;
+      }
     }
     else
     {
       return OpCodeSymbol::UNDEF;
     }
   }
+}
+
+impl fmt::Display for OpCode
+{
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+  {
+    match self.find_opcode_symbol()
+    {
+      OpCodeSymbol::UNDEF
+          => {write!(f, "UNDEF");},
+      OpCodeSymbol::_0NNN 
+          => {write!(f,"_0NNN");},
+      OpCodeSymbol::_00E0
+          => {write!(f, "_00E0");},
+      OpCodeSymbol::_00EE
+          => {write!(f, "_00EE");},
+      OpCodeSymbol::_1NNN
+          => {write!(f, "_1NNN");},
+      OpCodeSymbol::_2NNN
+          => {write!(f, "_2NNN");},
+      OpCodeSymbol::_3XNN
+          => {write!(f, "_3XNN");},
+      OpCodeSymbol::_4XNN
+          => {write!(f, "_4XNN");},
+      OpCodeSymbol::_5XY0
+          => {write!(f, "_5XY0");},
+      OpCodeSymbol::_6XNN
+          => {write!(f, "_6XNN");},
+      OpCodeSymbol::_7XNN
+          => {write!(f, "_7XNN");},
+      OpCodeSymbol::_8XY0
+          => {write!(f, "_8XY0");},
+      OpCodeSymbol::_8XY1
+          => {write!(f, "_8XY1");},
+      OpCodeSymbol::_8XY2
+          => {write!(f, "_8XY2");},
+      OpCodeSymbol::_8XY3
+          => {write!(f, "_8XY3");},
+      OpCodeSymbol::_8XY4
+          => {write!(f, "_8XY4");},
+      OpCodeSymbol::_8XY5
+          => {write!(f, "_8XY5");},
+      OpCodeSymbol::_8XY6
+          => {write!(f, "_8XY6");},
+      OpCodeSymbol::_8XY7
+          => {write!(f, "_8XY7");},
+      OpCodeSymbol::_8XYE
+          => {write!(f, "_8XYE");},
+      OpCodeSymbol::_9XY0
+          => {write!(f, "_9XY0");},
+      OpCodeSymbol::_ANNN // Set I to the address NNN
+          => {write!(f, "_ANNN");},
+      OpCodeSymbol::_BNNN
+          => {write!(f, "_BNNN");},
+      OpCodeSymbol::_CXNN
+          => {write!(f, "_CXNN");},
+      OpCodeSymbol::_DXYN
+          => {write!(f, "_DXYN");},
+      OpCodeSymbol::_EX9E
+          => {write!(f, "_EX9E");},
+      OpCodeSymbol::_EXA1
+          => {write!(f, "_EXA1");},
+      OpCodeSymbol::_FX07
+          => {write!(f, "_FX07");},
+      OpCodeSymbol::_FX0A
+          => {write!(f, "_FX0A");},
+      OpCodeSymbol::_FX15
+          => {write!(f, "_FX15");},
+      OpCodeSymbol::_FX18
+          => {write!(f, "_FX18");},
+      OpCodeSymbol::_FX1E
+          => {write!(f, "_FX1E");},
+      OpCodeSymbol::_FX29
+          => {write!(f, "_FX29");},
+      OpCodeSymbol::_FX33
+          => {write!(f, "_FX33");},
+      OpCodeSymbol::_FX55
+          => {write!(f, "_FX55");},
+      OpCodeSymbol::_FX65
+          => {write!(f, "_FX65");},
+    }
+
+    write!(f,"")
+  } 
 }
 
 //  0x000-0x1FF  - Chip 8 interpreter (contains font set in emu)
@@ -90,6 +348,11 @@ struct Graphics
 
 impl Graphics
 {
+  fn new() -> Self
+  {
+    Graphics { gfx:[0x0;64*32]  }
+  }
+
   fn draw()
   {
   }
@@ -122,6 +385,14 @@ struct KeyState
   key:[u8;16],
 }
 
+impl KeyState
+{
+  fn new() -> Self
+  {
+    KeyState { key:[0x0;16], }
+  }
+}
+
 struct Chip8
 {
   draw_flag:    bool,
@@ -129,6 +400,8 @@ struct Chip8
   memory:       Memory,
   stack:        Stack,
   curr_opcode:  OpCode,
+  graphics:     Graphics,
+  keys:         KeyState,
 }
 
 impl Chip8
@@ -139,7 +412,9 @@ impl Chip8
             regs:Registers::new(),
             memory:Memory::new(),
             stack:Stack::new(),
-            curr_opcode:OpCode::new(0x0)
+            curr_opcode:OpCode::new(0x0),
+            graphics:Graphics::new(),
+            keys:KeyState::new(),
           }
   }
 
@@ -175,12 +450,24 @@ impl Chip8
     {
       self.memory.memory[0x200 + idx] = buffer[idx];      
 
-      /*      
-      if buffer[idx] > 0
+      if idx % 2 == 1
       {
-        println!("{} {}", buffer[idx], self.memory.memory[0x200+idx]);
+        let first_half:u8   = self.memory.memory[0x200 + idx - 1];
+        let second_half:u8  = self.memory.memory[0x200 + idx];
+
+        let val:u16 = ((first_half as u16 ) << 8) | (second_half as u16);
+        
+        if val != 0
+        {
+          /*println!( "Opcode: {:#X}", val );
+          println!( "({},{}):", first_half, second_half );*/
+
+          let opcode = OpCode::new(val);
+
+          println!("{}", opcode);
+          //println!("{}", opcode.find_opcode_symbol() as u32 );
+        }
       }
-      */
     }
 
     println!("Game loaded successfully...");
@@ -212,11 +499,198 @@ impl Chip8
   {
     match opcode_symbol
     {
-      OpCodeSymbol::ANNN =>
+      OpCodeSymbol::_ANNN =>
       {
         self.regs.idx_reg = opcode.val & 0x0FFF;
         self.regs.pc_reg  += 2;
       },
+      
+      OpCodeSymbol::_8XY0 => /* My implementation */
+      {
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        // V[X] = V[Y]
+        self.regs.gen_purpose_regs[reg_num_X] = self.regs.gen_purpose_regs[reg_num_Y]; 
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      },
+      
+      OpCodeSymbol::_8XY1 => /* My implementation */
+      {
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        // V[X] = V[X] | V[Y] /* Bitwise Or */
+        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] | 
+                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      },
+
+      OpCodeSymbol::_8XY2 => /* My implementation */
+      {
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        // V[X] = V[X] & V[Y] /* Bitwise And */
+        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] & 
+                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      },
+      
+      OpCodeSymbol::_8XY3 => /* My implementation */
+      {
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        // V[X] = V[X] ^ V[Y] /* Bitwise Xor */
+        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] ^ 
+                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      },
+      
+      OpCodeSymbol::_6XNN => /* My implementation */
+      {
+        // Extract X register nums (for VX) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let NN        = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
+        
+        // V[X] = NN
+        self.regs.gen_purpose_regs[reg_num_X] = NN as u8; 
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      },
+      
+      OpCodeSymbol::_7XNN => /* My implementation */
+      {
+        // Extract X register nums (for VX) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let NN        = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
+        
+        // V[X] += NN
+        self.regs.gen_purpose_regs[reg_num_X] += (NN as u8); 
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      },
+      
+      OpCodeSymbol::_2NNN =>
+      {
+        self.stack.stack[self.stack.sp as usize] = self.regs.pc_reg;
+        self.stack.sp += 1;
+        self.regs.pc_reg = opcode.val & 0x0FFF;
+      },
+      
+      OpCodeSymbol::_8XY4 =>
+      {
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        
+        // Set the carry flag (VF) 
+        if self.regs.gen_purpose_regs[reg_num_Y] + self.regs.gen_purpose_regs[reg_num_X] >  0xFF
+        {
+          self.regs.gen_purpose_regs[0xF] = 1;
+        }
+        else
+        {
+          self.regs.gen_purpose_regs[0xF] = 0;
+        }
+
+        // VX += VY
+        self.regs.gen_purpose_regs[reg_num_X] += self.regs.gen_purpose_regs[reg_num_Y];
+
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      },
+      
+      OpCodeSymbol::_FX33 =>
+      {
+        let reg_num = ((opcode.val & 0x0F00) >> 8) as usize;
+
+        self.memory.memory[self.regs.idx_reg as usize] = self.regs.gen_purpose_regs[reg_num] / 100;
+        self.memory.memory[(self.regs.idx_reg+1) as usize] = (self.regs.gen_purpose_regs[reg_num]/10) % 10;
+        self.memory.memory[(self.regs.idx_reg+2) as usize] = (self.regs.gen_purpose_regs[reg_num] % 100) % 10;
+        self.regs.pc_reg  += 2;
+      },
+
+      // Display pixel at position(X,Y)
+      OpCodeSymbol::_DXYN =>
+      {
+        let reg_num_X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
+        let reg_num_Y:usize = ((opcode.val & 0x00F0) >> 4) as usize;
+        let x               = self.regs.gen_purpose_regs[reg_num_X];
+        let y               = self.regs.gen_purpose_regs[reg_num_Y];
+        let height:u8       = (opcode.val & 0x000F) as u8; 
+
+        // (x,y) holds the position. height as height
+
+        let mut pixel;
+
+        self.regs.gen_purpose_regs[0xF] = 0;
+
+        for yline in 0..height
+        {
+          pixel = self.memory.memory[(self.regs.idx_reg + (yline as u16)) as usize];
+
+          for xline in 0..8
+          {
+            if pixel & (0x80 >> xline) != 0
+            {
+              if self.graphics.gfx[ (x + xline + (( y + yline ) * 64)) as usize ] == 1
+              {
+                self.regs.gen_purpose_regs[0xF] = 1;
+              }
+              
+              // XOR
+              self.graphics.gfx[ (x + xline + (( y + yline ) * 64)) as usize ] ^= 1;
+            }
+          }
+        }
+
+        self.draw_flag = true;
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
+      }
+  
+      OpCodeSymbol::_EX9E =>
+      {
+
+        if self.keys.key[(self.regs.gen_purpose_regs[((opcode.val & 0x0F00) >> 8) as usize]) as usize] != 0
+        {
+          self.regs.pc_reg  += 4;
+        }
+        else
+        {
+          self.regs.pc_reg  += 2;
+        }
+      }
+  
+      OpCodeSymbol::_EXA1 =>
+      {
+        if self.keys.key[(self.regs.gen_purpose_regs[((opcode.val & 0x0F00) >> 8) as usize]) as usize ] == 0
+        {
+          self.regs.pc_reg  += 4;
+        }
+        else
+        {
+          self.regs.pc_reg  += 2;
+        }
+      }
+
       _ =>
       {
       }
