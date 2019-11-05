@@ -736,11 +736,11 @@ impl Chip8
       OpCodeSymbol::_CXNN =>
       {
         let      NN       = opcode.val & 0x00FF;
-        let      X        = opcode.val & 0x0F00;
+        let      X        = ((opcode.val & 0x0F00) >> 8) as usize;
         let mut  rng      = rand::thread_rng();
         let      rnd:u16  = rng.gen(); 
 
-        self.regs.gen_purpose_regs[X as usize] = (rnd & NN) as u8;
+        self.regs.gen_purpose_regs[X] = (rnd & NN) as u8;
       },
 
       // Display pixel at position(X,Y)
