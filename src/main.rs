@@ -1,5 +1,6 @@
 extern crate piston_window;
 extern crate find_folder;
+extern crate rand;
 
 use piston_window::*;
 use std::{thread, time};
@@ -7,14 +8,15 @@ use std::fs::File;
 use std::io::Read;
 use std::io::prelude::*;
 use std::fmt;
+use rand::Rng;
 
 const SCREEN_WIDTH_PIXELS:u32     = 64;
 const SCREEN_HEIGHT_PIXELS:u32    = 48;
 const PIXEL_SIZE:u32              = 10;
 
 // TODO:
-// 21 opcodes were implemented out of 35.
-// 14 (or 15 see commented opcode) opcodes need to be implemented.
+// 22 opcodes were implemented out of 35.
+// 13 (or 14 see commented opcode) opcodes need to be implemented.
 
 enum OpCodeSymbol
 {
@@ -733,7 +735,12 @@ impl Chip8
       
       OpCodeSymbol::_CXNN =>
       {
-        //TODO
+        let      NN       = opcode.val & 0x00FF;
+        let      X        = opcode.val & 0x0F00;
+        let mut  rng      = rand::thread_rng();
+        let      rnd:u16  = rng.gen(); 
+
+        self.regs.gen_purpose_regs[X as usize] = (rnd & NN) as u8;
       },
 
       // Display pixel at position(X,Y)
