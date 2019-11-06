@@ -814,7 +814,7 @@ impl Chip8
       {
         let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
 
-        self.gen_purpose_regs[X] = self.regs.delay_timer_reg; 
+        self.regs.gen_purpose_regs[X] = self.regs.delay_timer_reg; 
         
         self.regs.pc_reg  += 2;
       },
@@ -828,7 +828,7 @@ impl Chip8
       {
         let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
 
-        self.regs.delay_timer_reg = self.gen_purpose_regs[X]; 
+        self.regs.delay_timer_reg = self.regs.gen_purpose_regs[X]; 
         
         self.regs.pc_reg  += 2;
       },
@@ -837,7 +837,7 @@ impl Chip8
       {
         let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
 
-        self.regs.sound_timer_reg = self.gen_purpose_regs[X]; 
+        self.regs.sound_timer_reg = self.regs.gen_purpose_regs[X]; 
         
         self.regs.pc_reg  += 2;
       },
