@@ -15,8 +15,8 @@ const SCREEN_HEIGHT_PIXELS:u32    = 48;
 const PIXEL_SIZE:u32              = 10;
 
 // TODO:
-// 29 opcodes were implemented out of 34.
-// 5 opcodes need to be implemented.
+// 30 opcodes were implemented out of 34.
+// 4 opcodes need to be implemented.
 
 enum OpCodeSymbol
 {
@@ -359,6 +359,14 @@ impl Graphics
     Graphics { gfx:[0x0;64*32]  }
   }
 
+  fn clear(&mut self)
+  {
+    for pixel_idx in 0..64*32
+    {
+      self.gfx[pixel_idx] = 0x0;
+    }
+  }
+
   fn draw()
   {
   }
@@ -511,8 +519,10 @@ impl Chip8
       
       OpCodeSymbol::_00E0 =>
       {
-        // TODO
         // clear the graphics screen.
+        self.graphics.clear();
+        
+        self.regs.pc_reg += 2;
       },
       
       OpCodeSymbol::_00EE =>
