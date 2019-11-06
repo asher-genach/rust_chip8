@@ -15,8 +15,8 @@ const SCREEN_HEIGHT_PIXELS:u32    = 48;
 const PIXEL_SIZE:u32              = 10;
 
 // TODO:
-// 25 opcodes were implemented out of 35.
-// 10 (or 11 see commented opcode) opcodes need to be implemented.
+// 28 opcodes were implemented out of 35.
+// 7 opcodes need to be implemented.
 
 enum OpCodeSymbol
 {
@@ -665,11 +665,11 @@ impl Chip8
       OpCodeSymbol::_8XY4 =>
       {
         // Extract X and Y register nums (for VX and VY) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let Y = ((opcode.val & 0x00F0) >> 4) as usize;
         
         // Set the carry flag (VF) 
-        if self.regs.gen_purpose_regs[reg_num_Y] + self.regs.gen_purpose_regs[reg_num_X] >  0xFF
+        if self.regs.gen_purpose_regs[Y] + self.regs.gen_purpose_regs[X] >  0xFF
         {
           self.regs.gen_purpose_regs[0xF] = 1;
         }
@@ -679,7 +679,7 @@ impl Chip8
         }
 
         // VX += VY
-        self.regs.gen_purpose_regs[reg_num_X] += self.regs.gen_purpose_regs[reg_num_Y];
+        self.regs.gen_purpose_regs[X] += self.regs.gen_purpose_regs[Y];
 
         // PC += 2
         self.regs.pc_reg  += 2;
@@ -687,24 +687,76 @@ impl Chip8
       
       OpCodeSymbol::_8XY5 =>
       {
-        // TODO
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let Y = ((opcode.val & 0x00F0) >> 4) as usize;
+
+        // Set the carry flag (VF) if there is a borrow 
+        if self.regs.gen_purpose_regs[X] < self.regs.gen_purpose_regs[Y]
+        {
+          self.regs.gen_purpose_regs[0xF] = 0;
+        }
+        else
+        {
+          self.regs.gen_purpose_regs[0xF] = 1;
+        }
+
+        // VX -= VY
+        self.regs.gen_purpose_regs[X] -= self.regs.gen_purpose_regs[Y];
+
+        // PC += 2
+        self.regs.pc_reg  += 2;
+
       },
       
       OpCodeSymbol::_8XY6 =>
       {
-        // TODO
+        // VX >> 1
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+
+        self.regs.gen_purpose_regs[0xF] = self.regs.gen_purpose_regs[X] & 0x80; // 0x80 the first bit 0b10000000
+
+        self.regs.gen_purpose_regs[X] >>= 1;
+
+        // PC += 2
+        self.regs.pc_reg  += 2;
       },
       
       OpCodeSymbol::_8XY7 =>
       {
-        // TODO
+        // Extract X and Y register nums (for VX and VY) out of the opcode.  
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let Y = ((opcode.val & 0x00F0) >> 4) as usize;
+
+        // Set the carry flag (VF) if there is a borrow 
+        if self.regs.gen_purpose_regs[X] > self.regs.gen_purpose_regs[Y]
+        {
+          self.regs.gen_purpose_regs[0xF] = 0;
+        }
+        else
+        {
+          self.regs.gen_purpose_regs[0xF] = 1;
+        }
+
+        // VX -= VY
+        self.regs.gen_purpose_regs[X] = self.regs.gen_purpose_regs[Y] - self.regs.gen_purpose_regs[X];
+
+        // PC += 2
+        self.regs.pc_reg  += 2;
       },
       
-      /*
-       rcaops ??? - missing command. TODO: need to check
+      OpCodeSymbol::_8XYE =>
       {
+        // VX <<= 1
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+
+        self.regs.gen_purpose_regs[0xF] = self.regs.gen_purpose_regs[X] & 0x01; // 0x80 the lsb 0b00000001
+
+        self.regs.gen_purpose_regs[X] <<= 1;
+
+        // PC += 2
+        self.regs.pc_reg  += 2;
       },
-      */
 
       OpCodeSymbol::_9XY0 =>
       {
