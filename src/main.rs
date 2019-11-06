@@ -15,8 +15,8 @@ const SCREEN_HEIGHT_PIXELS:u32    = 48;
 const PIXEL_SIZE:u32              = 10;
 
 // TODO:
-// 22 opcodes were implemented out of 35.
-// 13 (or 14 see commented opcode) opcodes need to be implemented.
+// 25 opcodes were implemented out of 35.
+// 10 (or 11 see commented opcode) opcodes need to be implemented.
 
 enum OpCodeSymbol
 {
@@ -741,6 +741,9 @@ impl Chip8
         let      rnd:u16  = rng.gen(); 
 
         self.regs.gen_purpose_regs[X] = (rnd & NN) as u8;
+        
+        // PC += 2
+        self.regs.pc_reg  += 2;
       },
 
       // Display pixel at position(X,Y)
@@ -809,7 +812,11 @@ impl Chip8
 
       OpCodeSymbol::_FX07 =>
       {
-        //TODO
+        let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
+
+        self.gen_purpose_regs[X] = self.regs.delay_timer_reg; 
+        
+        self.regs.pc_reg  += 2;
       },
 
       OpCodeSymbol::_FX0A =>
@@ -819,12 +826,20 @@ impl Chip8
       
       OpCodeSymbol::_FX15 =>
       {
-        //TODO
+        let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
+
+        self.regs.delay_timer_reg = self.gen_purpose_regs[X]; 
+        
+        self.regs.pc_reg  += 2;
       },
       
       OpCodeSymbol::_FX18 =>
       {
-        //TODO
+        let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
+
+        self.regs.sound_timer_reg = self.gen_purpose_regs[X]; 
+        
+        self.regs.pc_reg  += 2;
       },
       
       OpCodeSymbol::_FX1E =>
