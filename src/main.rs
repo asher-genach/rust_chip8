@@ -523,6 +523,8 @@ impl Chip8
         self.graphics.clear();
         
         self.regs.pc_reg += 2;
+        
+        self.draw_flag = true;
       },
       
       OpCodeSymbol::_00EE =>
