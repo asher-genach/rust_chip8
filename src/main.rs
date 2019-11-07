@@ -15,8 +15,8 @@ const SCREEN_HEIGHT_PIXELS:u32    = 48;
 const PIXEL_SIZE:u32              = 10;
 
 // TODO:
-// 30 opcodes were implemented out of 34.
-// 4 opcodes need to be implemented.
+// 32 opcodes were implemented out of 34.
+// 2 opcodes need to be implemented.
 
 enum OpCodeSymbol
 {
@@ -885,6 +885,7 @@ impl Chip8
       OpCodeSymbol::_FX0A =>
       {
         //TODO
+        // get_key()
       },
       
       OpCodeSymbol::_FX15 =>
@@ -926,6 +927,7 @@ impl Chip8
       OpCodeSymbol::_FX29 =>
       {
         //TODO
+        // sprite address
       },
       
       OpCodeSymbol::_FX33 =>
@@ -935,17 +937,36 @@ impl Chip8
         self.memory.memory[self.regs.idx_reg as usize] = self.regs.gen_purpose_regs[reg_num] / 100;
         self.memory.memory[(self.regs.idx_reg+1) as usize] = (self.regs.gen_purpose_regs[reg_num]/10) % 10;
         self.memory.memory[(self.regs.idx_reg+2) as usize] = (self.regs.gen_purpose_regs[reg_num] % 100) % 10;
+
         self.regs.pc_reg  += 2;
       },
 
       OpCodeSymbol::_FX55 =>
       {
-        //TODO
-      },
+        let tmp = ((opcode.val & 0x0F00) >> 8);
+
+        for idx in 0..tmp
+        {
+          self.memory.memory[(self.regs.idx_reg + idx) as usize] = self.regs.gen_purpose_regs[idx as usize];
+        }
       
+        self.regs.idx_reg += (tmp + 1); 
+        
+        self.regs.pc_reg  += 2;
+      }
+
       OpCodeSymbol::_FX65 =>
       {
-        //TODO
+        let tmp = ((opcode.val & 0x0F00) >> 8);
+
+        for idx in 0..tmp
+        {
+          self.regs.gen_purpose_regs[idx as usize] = self.memory.memory[(self.regs.idx_reg + idx) as usize];
+        }
+      
+        self.regs.idx_reg += (tmp + 1); 
+        
+        self.regs.pc_reg  += 2;
       },
 
       _ =>
