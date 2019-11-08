@@ -15,8 +15,7 @@ const SCREEN_HEIGHT_PIXELS:u32    = 48;
 const PIXEL_SIZE:u32              = 10;
 
 // TODO:
-// 32 opcodes were implemented out of 34.
-// 2 opcodes need to be implemented.
+// All opcodes were implemented.
 
 enum OpCodeSymbol
 {
@@ -884,8 +883,23 @@ impl Chip8
 
       OpCodeSymbol::_FX0A =>
       {
-        //TODO
         // get_key()
+        let mut key_press = false;
+
+        for idx in 0..16
+        {
+          if self.keys.key[idx] != 0
+          {
+            self.regs.gen_purpose_regs[((opcode.val & 0x0F00) >> 8) as usize] = idx as u8;
+
+            key_press = true;
+          }
+        }
+
+        if key_press
+        {
+          self.regs.pc_reg  += 2;
+        }
       },
       
       OpCodeSymbol::_FX15 =>
@@ -926,8 +940,11 @@ impl Chip8
       
       OpCodeSymbol::_FX29 =>
       {
-        //TODO
-        // sprite address
+        let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
+
+        self.regs.idx_reg = (self.regs.gen_purpose_regs[X] * 0x5) as u16;
+
+        self.regs.pc_reg  += 2;
       },
       
       OpCodeSymbol::_FX33 =>
