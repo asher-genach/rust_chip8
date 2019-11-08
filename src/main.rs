@@ -607,11 +607,12 @@ impl Chip8
       OpCodeSymbol::_7XNN => /* My implementation */
       {
         // Extract X register nums (for VX) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let NN        = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
+        let X    = ((opcode.val & 0x0F00) >> 8) as usize;
+        let NN   = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
         
         // V[X] += NN
-        self.regs.gen_purpose_regs[reg_num_X] += (NN as u8); 
+        //self.regs.gen_purpose_regs[X] += (NN as u8); 
+        self.regs.gen_purpose_regs[X] = self.regs.gen_purpose_regs[X].wrapping_add(NN as u8); 
         
         // PC += 2
         self.regs.pc_reg  += 2;
@@ -679,7 +680,7 @@ impl Chip8
         let Y = ((opcode.val & 0x00F0) >> 4) as usize;
         
         // Set the carry flag (VF) 
-        if self.regs.gen_purpose_regs[Y] + self.regs.gen_purpose_regs[X] >  0xFF
+        if (self.regs.gen_purpose_regs[Y] as u16) + (self.regs.gen_purpose_regs[X] as u16)>  0xFF
         {
           self.regs.gen_purpose_regs[0xF] = 1;
         }
@@ -689,7 +690,8 @@ impl Chip8
         }
 
         // VX += VY
-        self.regs.gen_purpose_regs[X] += self.regs.gen_purpose_regs[Y];
+        //self.regs.gen_purpose_regs[X] += self.regs.gen_purpose_regs[Y];
+        self.regs.gen_purpose_regs[X] = self.regs.gen_purpose_regs[X].wrapping_add(self.regs.gen_purpose_regs[Y]);
 
         // PC += 2
         self.regs.pc_reg  += 2;
@@ -712,7 +714,8 @@ impl Chip8
         }
 
         // VX -= VY
-        self.regs.gen_purpose_regs[X] -= self.regs.gen_purpose_regs[Y];
+        // self.regs.gen_purpose_regs[X] -= self.regs.gen_purpose_regs[Y];
+        self.regs.gen_purpose_regs[X] = self.regs.gen_purpose_regs[X].wrapping_sub(self.regs.gen_purpose_regs[Y]);
 
         // PC += 2
         self.regs.pc_reg  += 2;
@@ -831,13 +834,22 @@ impl Chip8
           {
             if pixel & (0x80 >> xline) != 0
             {
-              if self.graphics.gfx[ (x + xline + (( y + yline ) * 64)) as usize ] == 1
+              
+              println!( "x = {}, xline = {}, y = {}, yline = {}", x, xline, y, yline );
+
+              let gfx_idx_raw = (((x + xline) as usize) + (( (y + yline) as usize ) * 64)); 
+
+              println!( "gfx_idx = {}, x = {}, xline = {}, y = {}, yline = {}", gfx_idx_raw, x, xline, y, yline );
+
+              let gfx_idx = gfx_idx_raw as usize; 
+
+              if self.graphics.gfx[ gfx_idx ] == 1
               {
                 self.regs.gen_purpose_regs[0xF] = 1;
               }
               
               // XOR
-              self.graphics.gfx[ (x + xline + (( y + yline ) * 64)) as usize ] ^= 1;
+              self.graphics.gfx[ gfx_idx ] ^= 1;
             }
           }
         }
