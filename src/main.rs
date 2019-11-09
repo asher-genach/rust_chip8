@@ -343,6 +343,18 @@ impl Registers
       sound_timer_reg:0
     }
   }
+
+  fn clear(&mut self)
+  {
+    for idx in 0..16
+    {
+      self.gen_purpose_regs[idx] = 0x0;
+    }
+
+    self.pc_reg = 0x200; // PC starts at address 0x200
+
+    self.idx_reg = 0x0;
+  }
 }
 
 struct Graphics
@@ -390,6 +402,16 @@ impl Stack
   {
     Stack { stack:[0x0;16], sp:0x0 }
   }
+
+  fn clear(&mut self)
+  {
+    for idx in 0..16
+    {
+      self.stack[idx] = 0x0;
+    }
+
+    self.sp = 0x0;
+  }
 }
 
 // HEX based 0x0-0xF
@@ -434,16 +456,18 @@ impl Chip8
   fn initialize(&mut self)
   {
     // Initialize registers and memory once.
-    self.regs.pc_reg   = 0x200;            // The program counter starts at address 0x200.
     self.curr_opcode   = OpCode::new(0x0); // Reset current opcode. 
-    self.regs.idx_reg  = 0x0;              // Reset idx register.
-    self.stack.sp      = 0x0;              // Reset stack pointer. 
 
-    // Clear display	
     // Clear stack
-    // Clear registers V0-VF
-    // Clear memory
+    self.stack.clear(); // Reset stack and stack pointer.
+    
+    // Clear registers V0-VF, PC, I
+    self.regs.clear();
+    
+    // Clear memory - TODO
  
+    // Clear display - TODO
+
     // Load fontset
     /*for(int i = 0; i < 80; ++i)
       memory[i] = chip8_fontset[i];*/		
@@ -548,10 +572,10 @@ impl Chip8
       
       OpCodeSymbol::_3XNN =>
       {
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let NN        = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
+        let X   = ((opcode.val & 0x0F00) >> 8) as usize;
+        let NN  = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
         
-        if self.regs.gen_purpose_regs[reg_num_X] == (NN as u8) 
+        if self.regs.gen_purpose_regs[X] == (NN as u8) 
         {
           self.regs.pc_reg  += 4;
         }
@@ -563,10 +587,10 @@ impl Chip8
       
       OpCodeSymbol::_4XNN =>
       {
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let NN        = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
+        let X   = ((opcode.val & 0x0F00) >> 8) as usize;
+        let NN  = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
         
-        if self.regs.gen_purpose_regs[reg_num_X] != (NN as u8) 
+        if self.regs.gen_purpose_regs[X] != (NN as u8) 
         {
           self.regs.pc_reg  += 4;
         }
@@ -578,10 +602,10 @@ impl Chip8
       
       OpCodeSymbol::_5XY0 =>
       {
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let Y = ((opcode.val & 0x00F0) >> 4) as usize;
         
-        if self.regs.gen_purpose_regs[reg_num_X] == self.regs.gen_purpose_regs[reg_num_Y] 
+        if self.regs.gen_purpose_regs[X] == self.regs.gen_purpose_regs[Y] 
         {
           self.regs.pc_reg  += 4;
         }
@@ -594,11 +618,11 @@ impl Chip8
       OpCodeSymbol::_6XNN => /* My implementation */
       {
         // Extract X register nums (for VX) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let NN        = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
+        let X    = ((opcode.val & 0x0F00) >> 8) as usize;
+        let NN   = (opcode.val & 0x00FF); // NN is an 8 bit constant (see Wikipedia for chip8).
         
         // V[X] = NN
-        self.regs.gen_purpose_regs[reg_num_X] = NN as u8; 
+        self.regs.gen_purpose_regs[X] = NN as u8; 
         
         // PC += 2
         self.regs.pc_reg  += 2;
@@ -621,11 +645,11 @@ impl Chip8
       OpCodeSymbol::_8XY0 => /* My implementation */
       {
         // Extract X and Y register nums (for VX and VY) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let Y = ((opcode.val & 0x00F0) >> 4) as usize;
         
         // V[X] = V[Y]
-        self.regs.gen_purpose_regs[reg_num_X] = self.regs.gen_purpose_regs[reg_num_Y]; 
+        self.regs.gen_purpose_regs[X] = self.regs.gen_purpose_regs[Y]; 
         
         // PC += 2
         self.regs.pc_reg  += 2;
@@ -634,12 +658,12 @@ impl Chip8
       OpCodeSymbol::_8XY1 => /* My implementation */
       {
         // Extract X and Y register nums (for VX and VY) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let Y = ((opcode.val & 0x00F0) >> 4) as usize;
         
         // V[X] = V[X] | V[Y] /* Bitwise Or */
-        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] | 
-                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
+        self.regs.gen_purpose_regs[X] =  self.regs.gen_purpose_regs[X] | 
+                                         self.regs.gen_purpose_regs[Y]; 
         
         // PC += 2
         self.regs.pc_reg  += 2;
@@ -648,12 +672,12 @@ impl Chip8
       OpCodeSymbol::_8XY2 => /* My implementation */
       {
         // Extract X and Y register nums (for VX and VY) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let Y = ((opcode.val & 0x00F0) >> 4) as usize;
         
         // V[X] = V[X] & V[Y] /* Bitwise And */
-        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] & 
-                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
+        self.regs.gen_purpose_regs[X] =  self.regs.gen_purpose_regs[X] & 
+                                         self.regs.gen_purpose_regs[Y]; 
         
         // PC += 2
         self.regs.pc_reg  += 2;
@@ -662,12 +686,12 @@ impl Chip8
       OpCodeSymbol::_8XY3 => /* My implementation */
       {
         // Extract X and Y register nums (for VX and VY) out of the opcode.  
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let Y = ((opcode.val & 0x00F0) >> 4) as usize;
         
         // V[X] = V[X] ^ V[Y] /* Bitwise Xor */
-        self.regs.gen_purpose_regs[reg_num_X] =  self.regs.gen_purpose_regs[reg_num_X] ^ 
-                                                 self.regs.gen_purpose_regs[reg_num_Y]; 
+        self.regs.gen_purpose_regs[X] =  self.regs.gen_purpose_regs[X] ^ 
+                                         self.regs.gen_purpose_regs[Y]; 
         
         // PC += 2
         self.regs.pc_reg  += 2;
@@ -773,10 +797,10 @@ impl Chip8
 
       OpCodeSymbol::_9XY0 =>
       {
-        let reg_num_X = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y = ((opcode.val & 0x00F0) >> 4) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
+        let Y = ((opcode.val & 0x00F0) >> 4) as usize;
         
-        if self.regs.gen_purpose_regs[reg_num_X] != self.regs.gen_purpose_regs[reg_num_Y] 
+        if self.regs.gen_purpose_regs[X] != self.regs.gen_purpose_regs[Y] 
         {
           self.regs.pc_reg  += 4;
         }
@@ -814,11 +838,11 @@ impl Chip8
       // Display pixel at position(X,Y)
       OpCodeSymbol::_DXYN =>
       {
-        let reg_num_X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
-        let reg_num_Y:usize = ((opcode.val & 0x00F0) >> 4) as usize;
-        let x               = self.regs.gen_purpose_regs[reg_num_X];
-        let y               = self.regs.gen_purpose_regs[reg_num_Y];
-        let height:u8       = (opcode.val & 0x000F) as u8; 
+        let X           = ((opcode.val & 0x0F00) >> 8) as usize;
+        let Y           = ((opcode.val & 0x00F0) >> 4) as usize;
+        let x           = self.regs.gen_purpose_regs[X];
+        let y           = self.regs.gen_purpose_regs[Y];
+        let height:u8   = (opcode.val & 0x000F) as u8; 
 
         // (x,y) holds the position. height as height
 
@@ -881,7 +905,7 @@ impl Chip8
 
       OpCodeSymbol::_FX07 =>
       {
-        let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
 
         self.regs.gen_purpose_regs[X] = self.regs.delay_timer_reg; 
         
@@ -911,7 +935,7 @@ impl Chip8
       
       OpCodeSymbol::_FX15 =>
       {
-        let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
 
         self.regs.delay_timer_reg = self.regs.gen_purpose_regs[X]; 
         
@@ -920,7 +944,7 @@ impl Chip8
       
       OpCodeSymbol::_FX18 =>
       {
-        let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
 
         self.regs.sound_timer_reg = self.regs.gen_purpose_regs[X]; 
         
@@ -929,7 +953,7 @@ impl Chip8
       
       OpCodeSymbol::_FX1E =>
       {
-        let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
 
         if self.regs.idx_reg + (self.regs.gen_purpose_regs[X] as u16) > 0xFFF
         {
@@ -947,7 +971,7 @@ impl Chip8
       
       OpCodeSymbol::_FX29 =>
       {
-        let X:usize = ((opcode.val & 0x0F00) >> 8) as usize;
+        let X = ((opcode.val & 0x0F00) >> 8) as usize;
 
         self.regs.idx_reg = (self.regs.gen_purpose_regs[X] * 0x5) as u16;
 
