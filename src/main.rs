@@ -834,14 +834,9 @@ impl Chip8
           {
             if pixel & (0x80 >> xline) != 0
             {
-              
-              println!( "x = {}, xline = {}, y = {}, yline = {}", x, xline, y, yline );
+              let gfx_idx = (((x + xline) as usize) + (( (y + yline) as usize ) * 64)); 
 
-              let gfx_idx_raw = (((x + xline) as usize) + (( (y + yline) as usize ) * 64)); 
-
-              println!( "gfx_idx = {}, x = {}, xline = {}, y = {}, yline = {}", gfx_idx_raw, x, xline, y, yline );
-
-              let gfx_idx = gfx_idx_raw as usize; 
+              println!( "gfx_idx = {}, x = {}, xline = {}, y = {}, yline = {}", gfx_idx, x, xline, y, yline );
 
               if self.graphics.gfx[ gfx_idx ] == 1
               {
