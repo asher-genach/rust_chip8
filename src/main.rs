@@ -1143,6 +1143,10 @@ impl Emulator
       
       if self.chip8.is_draw_flag()
       {
+        // gfx is in chip8, but the piston graphics window
+        // is in the emulator.
+        // draw_graphics() needs to inquire the chip8 gfx matrix
+        // and draw it into the piston window.
         self.draw_graphics();
       }
 
