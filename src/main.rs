@@ -10,9 +10,15 @@ use std::io::prelude::*;
 use std::fmt;
 use rand::Rng;
 
-const SCREEN_WIDTH_PIXELS:u32     = 64;
-const SCREEN_HEIGHT_PIXELS:u32    = 48;
-const PIXEL_SIZE:u32              = 10;
+//Colors
+
+const COLOR_BLACK:[f32;4] = [0.0, 0.0, 0.0, 1.0];
+const COLOR_RED:  [f32;4] = [1.0, 0.0, 0.0, 1.0];
+const COLOR_GREEN:[f32;4] = [0.0, 1.0, 0.0, 1.0];
+
+const SCREEN_WIDTH_PIXELS:usize     = 64;
+const SCREEN_HEIGHT_PIXELS:usize    = 32;
+const PIXEL_SIZE:usize              = 10;
 
 enum OpCodeSymbol
 {
@@ -386,10 +392,6 @@ impl Graphics
       self.gfx[pixel_idx] = 0x0;
     }
   }
-
-  fn draw()
-  {
-  }
 }
 
 // The Chip 8 instruction set has opcodes that allow the program to jump to a certain
@@ -540,7 +542,7 @@ impl Chip8
 
           let opcode = OpCode::new(val);
 
-          println!("{}", opcode);
+          //println!("{}", opcode);
           //println!("{}", opcode.find_opcode_symbol() as u32 );
         }
       }
@@ -901,7 +903,7 @@ impl Chip8
             {
               let gfx_idx = (((x + xline) as usize) + (( (y + yline) as usize ) * 64)); 
 
-              println!( "gfx_idx = {}, x = {}, xline = {}, y = {}, yline = {}", gfx_idx, x, xline, y, yline );
+             //  println!( "gfx_idx = {}, x = {}, xline = {}, y = {}, yline = {}", gfx_idx, x, xline, y, yline );
 
               if self.graphics.gfx[ gfx_idx ] == 1
               {
@@ -1115,8 +1117,8 @@ impl Emulator
     // But lets leave it this way for now.
     // Maybe I should return a Result<> and propagate it to the caller
     Emulator{ window:WindowSettings::new("CHIP-8 Emulator",
-                [SCREEN_WIDTH_PIXELS*PIXEL_SIZE,
-                 SCREEN_HEIGHT_PIXELS*PIXEL_SIZE])
+                [(SCREEN_WIDTH_PIXELS*PIXEL_SIZE) as u32,
+                 (SCREEN_HEIGHT_PIXELS*PIXEL_SIZE) as u32])
                 .exit_on_esc(true).build().unwrap(),
                 chip8: Chip8::new() }
   }
@@ -1128,14 +1130,87 @@ impl Emulator
     self.chip8.load_game( game_name );
   }
 
-  fn draw_graphics(&mut self)
+  fn draw_graphics(&mut self, event:&Event)
   {
-    // TODO
+    for x_idx in 0..64
+    {
+      for y_idx in 0..32
+      {
+        let color:[f32;4];
+          
+        if self.chip8.graphics.gfx[y_idx*64 + x_idx] == 0x1
+        {
+          color = COLOR_GREEN;
+        }
+        else
+        {
+          color = COLOR_BLACK;
+        }
+          
+        self.window.draw_2d(event,
+                            |context, graphics|
+                            {  
+                              rectangle( color,
+                                         [1.0*((x_idx*PIXEL_SIZE) as f64),
+                                          1.0*((y_idx*PIXEL_SIZE) as f64),
+                                          1.0*(((x_idx*PIXEL_SIZE) + PIXEL_SIZE) as f64),
+                                          1.0*(((y_idx*PIXEL_SIZE) + PIXEL_SIZE) as f64)],
+                                         context.transform,
+                                         graphics );
+                            });
+      }
+    }
 
     self.chip8.draw_flag = false;
   }
 
   fn main_loop(&mut self)
+  {
+    println!("In draw_graphics()");
+    // TODO
+    while let Some(event) = self.window.next()
+    {
+      self.chip8.emulate_cycle();
+      
+      
+      // Catch Window CloseEvent 
+      if let Some(_) = event.close_args()
+      {
+        break;
+      }
+      
+      // Catch Button Events
+      if let Some(button) = event.press_args()
+      {
+        match button
+        {
+          Button::Keyboard(Key::Up) => { },
+          Button::Keyboard(Key::Down) => { },
+          Button::Keyboard(Key::Left) => {},
+          Button::Keyboard(Key::Right) => {},
+          _ => {},
+        }
+      }
+      
+      /*self.window.draw_2d( &event,
+                           |context, graphics|
+                           { 
+                             clear([1.0; 4], graphics);
+                           }); */
+
+      if self.chip8.is_draw_flag()
+      {
+        self.draw_graphics(&event);
+      }
+
+      self.chip8.set_keys();
+    }
+
+    println!("Exit draw_graphics()");
+
+  }
+
+ /* fn main_loop(&mut self)
   {
     loop
     {
@@ -1152,7 +1227,9 @@ impl Emulator
 
       self.chip8.set_keys();
     }
-  }
+
+    self.draw_graphics(); 
+  } */
 
   fn start(&mut self, game_name:&str)
   {
