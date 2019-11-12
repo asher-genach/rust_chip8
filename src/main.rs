@@ -5,6 +5,7 @@ extern crate rand;
 use piston_window::*;
 use std::{thread, time};
 use std::fs::File;
+use std::fs;
 use std::io::Read;
 use std::io::prelude::*;
 use std::fmt;
@@ -518,13 +519,15 @@ impl Chip8
 
   fn load_game(&mut self, file_name:&str)
   {
-    let mut file = File::open(file_name).unwrap();
-    
-    let mut buffer = [0u8;0xDFF];
+    let     file_size  = fs::metadata(file_name).unwrap().len() as usize;
+    let mut file       = File::open(file_name).unwrap();
+    let mut buffer     = [0u8;0xDFF];
+
+    println!("File size:{}", file_size);
     
     file.read(&mut buffer).unwrap();
 
-    for idx in 0..0xDFF
+    for idx in 0..file_size/*0xDFF*/
     {
       self.memory.memory[0x200 + idx] = buffer[idx];      
 
