@@ -1095,9 +1095,46 @@ impl Chip8
     self.draw_flag
   }
       
-  fn set_keys(&mut self)
+  fn set_keys(&mut self, event:&Event)
   {
-    // TODO
+    // TODO: Catch Button Events
+    if let Some(button) = event.press_args()
+    {
+      let mut valid_key = true;
+      let key;
+
+      match button
+      {
+        Button::Keyboard(Key::D1) => {self.keys.key[0] = 1; key = 0;},
+        Button::Keyboard(Key::D2) => {self.keys.key[1] = 1; key = 1;},
+        Button::Keyboard(Key::D3) => {self.keys.key[2] = 1; key = 2;},
+        Button::Keyboard(Key::D4) => {self.keys.key[3] = 1; key = 3;},
+        Button::Keyboard(Key::Q)  => {self.keys.key[4] = 1; key = 4;},
+        Button::Keyboard(Key::W)  => {self.keys.key[5] = 1; key = 5;},
+        Button::Keyboard(Key::E)  => {self.keys.key[6] = 1; key = 6;},
+        Button::Keyboard(Key::R)  => {self.keys.key[7] = 1; key = 7;},
+        Button::Keyboard(Key::A)  => {self.keys.key[8] = 1; key = 8;},
+        Button::Keyboard(Key::S)  => {self.keys.key[9] = 1; key = 9;},
+        Button::Keyboard(Key::D)  => {self.keys.key[10] = 1; key = 10;},
+        Button::Keyboard(Key::F)  => {self.keys.key[11] = 1; key = 11;},
+        Button::Keyboard(Key::Z)  => {self.keys.key[12] = 1; key = 12;},
+        Button::Keyboard(Key::X)  => {self.keys.key[13] = 1; key = 13;},
+        Button::Keyboard(Key::C)  => {self.keys.key[14] = 1; key = 14;},
+        Button::Keyboard(Key::V)  => {self.keys.key[15] = 1; key = 15;},
+         _ => { valid_key = false; key = 99; },
+      }
+
+      if valid_key
+      {
+        for idx in 0..16
+        {
+          if idx != key
+          {
+            self.keys.key[idx] = 0;
+          }
+        }
+      }
+    }
   }
 }
 
@@ -1132,6 +1169,11 @@ impl Emulator
 
   fn draw_graphics(&mut self, event:&Event)
   {
+    // gfx is in chip8, but the piston graphics window
+    // is in the emulator.
+    // draw_graphics() needs to inquire the chip8 gfx matrix
+    // and draw it into the piston window.
+
     for x_idx in 0..64
     {
       for y_idx in 0..32
@@ -1166,30 +1208,14 @@ impl Emulator
 
   fn main_loop(&mut self)
   {
-    println!("In draw_graphics()");
-    // TODO
     while let Some(event) = self.window.next()
     {
       self.chip8.emulate_cycle();
-      
       
       // Catch Window CloseEvent 
       if let Some(_) = event.close_args()
       {
         break;
-      }
-      
-      // Catch Button Events
-      if let Some(button) = event.press_args()
-      {
-        match button
-        {
-          Button::Keyboard(Key::Up) => { },
-          Button::Keyboard(Key::Down) => { },
-          Button::Keyboard(Key::Left) => {},
-          Button::Keyboard(Key::Right) => {},
-          _ => {},
-        }
       }
       
       /*self.window.draw_2d( &event,
@@ -1203,33 +1229,9 @@ impl Emulator
         self.draw_graphics(&event);
       }
 
-      self.chip8.set_keys();
+      self.chip8.set_keys(&event);
     }
-
-    println!("Exit draw_graphics()");
-
   }
-
- /* fn main_loop(&mut self)
-  {
-    loop
-    {
-      self.chip8.emulate_cycle();
-      
-      if self.chip8.is_draw_flag()
-      {
-        // gfx is in chip8, but the piston graphics window
-        // is in the emulator.
-        // draw_graphics() needs to inquire the chip8 gfx matrix
-        // and draw it into the piston window.
-        self.draw_graphics();
-      }
-
-      self.chip8.set_keys();
-    }
-
-    self.draw_graphics(); 
-  } */
 
   fn start(&mut self, game_name:&str)
   {
