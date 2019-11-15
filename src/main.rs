@@ -24,7 +24,7 @@ const PIXEL_SIZE:usize              = 10;
 enum OpCodeSymbol
 {
   UNDEF,
-  _0NNN, //
+  _0NNN,
   _00E0,
   _00EE,
   _1NNN,
@@ -44,7 +44,7 @@ enum OpCodeSymbol
   _8XY7,
   _8XYE,
   _9XY0,
-  _ANNN, // Set I to the address NNN
+  _ANNN,
   _BNNN,
   _CXNN,
   _DXYN,
@@ -185,6 +185,7 @@ impl OpCode
       }
       else if ( self.val & 0x000F == 0xA )
       {
+        println!("opcode found");
         return OpCodeSymbol::_FX0A;
       }
       else if ( self.val & 0x000F == 0x9 )
@@ -574,6 +575,8 @@ impl Chip8
     let val:u16 = ((first_half as u16 ) << 8) | (second_half as u16);
 
     self.curr_opcode = OpCode::new(val);
+
+    println!("opcode:{}", self.curr_opcode);
   }
 
   fn execute_opcode(&mut self)
@@ -797,7 +800,9 @@ impl Chip8
         // VX >> 1
         let X = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
 
-        self.regs.gen_purpose_regs[0xF] = self.regs.gen_purpose_regs[X] & 0x80; // 0x80 the first bit 0b10000000
+        //self.regs.gen_purpose_regs[0xF] = self.regs.gen_purpose_regs[X] & 0x80; // 0x80 the first bit 0b10000000
+        // shift right
+        self.regs.gen_purpose_regs[0xF] = self.regs.gen_purpose_regs[X] & 0x1; // 0x1 the first bit 0b10000000
 
         self.regs.gen_purpose_regs[X] >>= 1;
 
@@ -833,13 +838,14 @@ impl Chip8
         // VX <<= 1
         let X = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
 
-        self.regs.gen_purpose_regs[0xF] = self.regs.gen_purpose_regs[X] & 0x01; // 0x80 the lsb 0b00000001
-
+        //self.regs.gen_purpose_regs[0xF] = self.regs.gen_purpose_regs[X] & 0x01; // 0x80 the lsb 0b00000001
+        self.regs.gen_purpose_regs[0xF] = self.regs.gen_purpose_regs[X] >> 7;
         self.regs.gen_purpose_regs[X] <<= 1;
 
         // PC += 2
         self.regs.pc_reg  += 2;
       },
+      
 
       OpCodeSymbol::_9XY0 =>
       {
@@ -868,6 +874,10 @@ impl Chip8
         self.regs.pc_reg = NNN + (self.regs.gen_purpose_regs[0] as u16); // NNN + V0
       },
       
+      // Asher - Up to here all the opcodes seem to be implemented correctly
+      // ( as in the C++ implementation).
+      //
+      // TODO: Continue from here
       OpCodeSymbol::_CXNN =>
       {
         let      NN       = self.curr_opcode.val & 0x00FF;
@@ -875,13 +885,14 @@ impl Chip8
         let mut  rng      = rand::thread_rng();
         let      rnd:u16  = rng.gen(); 
 
-        self.regs.gen_purpose_regs[X] = (rnd & NN) as u8;
+        self.regs.gen_purpose_regs[X] = ((rnd % 0xFF) & NN) as u8;
         
         // PC += 2
         self.regs.pc_reg  += 2;
       },
 
       // Display pixel at position(X,Y)
+      // Asher: TODO: check this opcode thouhroughly
       OpCodeSymbol::_DXYN =>
       {
         let X           = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
@@ -906,8 +917,6 @@ impl Chip8
             {
               let gfx_idx = (((x + xline) as usize) + (( (y + yline) as usize ) * 64)); 
 
-             //  println!( "gfx_idx = {}, x = {}, xline = {}, y = {}, yline = {}", gfx_idx, x, xline, y, yline );
-
               if self.graphics.gfx[ gfx_idx ] == 1
               {
                 self.regs.gen_purpose_regs[0xF] = 1;
@@ -927,7 +936,10 @@ impl Chip8
   
       OpCodeSymbol::_EX9E =>
       {
-        if self.keys.key[(self.regs.gen_purpose_regs[((self.curr_opcode.val & 0x0F00) >> 8) as usize]) as usize] != 0
+
+        let X  = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
+
+        if self.keys.key[(self.regs.gen_purpose_regs[X]) as usize] != 0
         {
           self.regs.pc_reg  += 4;
         }
@@ -939,7 +951,9 @@ impl Chip8
   
       OpCodeSymbol::_EXA1 =>
       {
-        if self.keys.key[(self.regs.gen_purpose_regs[((self.curr_opcode.val & 0x0F00) >> 8) as usize]) as usize ] == 0
+        let X  = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
+
+        if self.keys.key[(self.regs.gen_purpose_regs[X]) as usize ] == 0
         {
           self.regs.pc_reg  += 4;
         }
@@ -963,11 +977,17 @@ impl Chip8
         // get_key()
         let mut key_press = false;
 
+        println!("_FX0A");
+
         for idx in 0..16
         {
           if self.keys.key[idx] != 0
           {
-            self.regs.gen_purpose_regs[((self.curr_opcode.val & 0x0F00) >> 8) as usize] = idx as u8;
+            let X = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
+
+            self.regs.gen_purpose_regs[X] = idx as u8;
+
+            println!("key idx:{} was pushed", idx);
 
             key_press = true;
           }
@@ -1026,39 +1046,39 @@ impl Chip8
       
       OpCodeSymbol::_FX33 =>
       {
-        let reg_num = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
+        let X = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
 
-        self.memory.memory[self.regs.idx_reg as usize] = self.regs.gen_purpose_regs[reg_num] / 100;
-        self.memory.memory[(self.regs.idx_reg+1) as usize] = (self.regs.gen_purpose_regs[reg_num]/10) % 10;
-        self.memory.memory[(self.regs.idx_reg+2) as usize] = (self.regs.gen_purpose_regs[reg_num] % 100) % 10;
+        self.memory.memory[self.regs.idx_reg as usize] = self.regs.gen_purpose_regs[X] / 100;
+        self.memory.memory[(self.regs.idx_reg+1) as usize] = (self.regs.gen_purpose_regs[X]/10) % 10;
+        self.memory.memory[(self.regs.idx_reg+2) as usize] = (self.regs.gen_purpose_regs[X] % 100) % 10;
 
         self.regs.pc_reg  += 2;
       },
 
       OpCodeSymbol::_FX55 =>
       {
-        let tmp = ((self.curr_opcode.val & 0x0F00) >> 8);
+        let X = ((self.curr_opcode.val & 0x0F00) >> 8);
 
-        for idx in 0..tmp
+        for idx in 0..X
         {
           self.memory.memory[(self.regs.idx_reg + idx) as usize] = self.regs.gen_purpose_regs[idx as usize];
         }
       
-        self.regs.idx_reg += (tmp + 1); 
+        self.regs.idx_reg += (X + 1); 
         
         self.regs.pc_reg  += 2;
       }
 
       OpCodeSymbol::_FX65 =>
       {
-        let tmp = ((self.curr_opcode.val & 0x0F00) >> 8);
+        let X = ((self.curr_opcode.val & 0x0F00) >> 8);
 
-        for idx in 0..tmp
+        for idx in 0..X
         {
           self.regs.gen_purpose_regs[idx as usize] = self.memory.memory[(self.regs.idx_reg + idx) as usize];
         }
       
-        self.regs.idx_reg += (tmp + 1); 
+        self.regs.idx_reg += (X + 1); 
         
         self.regs.pc_reg  += 2;
       },
@@ -1209,10 +1229,19 @@ impl Emulator
     self.chip8.draw_flag = false;
   }
 
-  fn main_loop(&mut self)
+  fn main_loop(&mut self, cycle_limit:u64)
   {
+    let mut num_cycle:u64 = 0;
+
     while let Some(event) = self.window.next()
     {
+      num_cycle += 1;
+
+      if cycle_limit == 1000 || num_cycle > cycle_limit
+      {
+        break;
+      }
+
       self.chip8.emulate_cycle();
       
       // Catch Window CloseEvent 
@@ -1240,13 +1269,16 @@ impl Emulator
   {
     self.setup( game_name );
 
-    self.main_loop();
+    self.main_loop(5);
   }
 }
 
 fn main()
 { 
   Emulator::new().start("pong.rom");
+  // Emulator::new().start("guess.rom");
+  //Emulator::new().start("ttto.rom");
+  //Emulator::new().start("flipc.rom");
 
   // thread::sleep(time::Duration::from_millis(3000));
 }
