@@ -185,7 +185,6 @@ impl OpCode
       }
       else if ( self.val & 0x000F == 0xA )
       {
-        println!("opcode found");
         return OpCodeSymbol::_FX0A;
       }
       else if ( self.val & 0x000F == 0x9 )
@@ -576,13 +575,13 @@ impl Chip8
 
     self.curr_opcode = OpCode::new(val);
 
+    println!("PC:{:#X}", self.regs.pc_reg);
     println!("opcode:{}", self.curr_opcode);
+    println!( "Opcode value: {:#X}", self.curr_opcode.val );
   }
 
   fn execute_opcode(&mut self)
   {
-    println!( "Opcode: {:#X}", self.curr_opcode.val );
-
     let  opcode_symbol = self.curr_opcode.find_opcode_symbol();
 
     match opcode_symbol
