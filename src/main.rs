@@ -581,6 +581,8 @@ impl Chip8
 
   fn execute_opcode(&mut self)
   {
+    println!( "Opcode: {:#X}", self.curr_opcode.val );
+
     let  opcode_symbol = self.curr_opcode.find_opcode_symbol();
 
     match opcode_symbol
@@ -1269,7 +1271,7 @@ impl Emulator
   {
     self.setup( game_name );
 
-    self.main_loop(5);
+    self.main_loop(11);
   }
 }
 
