@@ -1,7 +1,3 @@
-extern crate piston_window;
-extern crate find_folder;
-extern crate rand;
-
 use piston_window::*;
 use std::{thread, time};
 use std::fs::File;
@@ -305,6 +301,8 @@ impl fmt::Display for OpCode
           => {write!(f, "_FX65");},
     }
 
+    write!(f," :Value={:#X}", self.val); 
+
     write!(f,"")
   } 
 }
@@ -373,6 +371,28 @@ impl Registers
   }
 }
 
+impl fmt::Display for Registers 
+{
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result
+  {
+    for idx in 0..16
+    {
+      if idx % 4 == 0
+      {
+        write!(f,"\n");
+      }
+
+      write!(f, "V[{}]={:#X} ", idx, self.gen_purpose_regs[idx]);
+    }
+
+    write!(f, "\n");
+
+    write!(f, "PC:{:#X}, I:{:#X}, DELAY_TIMER:{:#X}, SOUND_TIMER:{:#X}", self.pc_reg, self.idx_reg, self.delay_timer_reg, self.sound_timer_reg); 
+    
+    write!(f, "")
+  }
+}
+
 struct Graphics
 {
   // Add piston window
@@ -426,20 +446,6 @@ impl Stack
   }
 }
 
-// HEX based 0x0-0xF
-struct KeyState
-{
-  key:[u8;16],
-}
-
-impl KeyState
-{
-  fn new() -> Self
-  {
-    KeyState { key:[0x0;16], }
-  }
-}
-
 struct Chip8
 {
   draw_flag:    bool,
@@ -448,7 +454,7 @@ struct Chip8
   stack:        Stack,
   curr_opcode:  OpCode,
   graphics:     Graphics,
-  keys:         KeyState,
+  key:          [u8;16], // HEX based 0x0-0xF
 }
 
 impl Chip8
@@ -461,7 +467,7 @@ impl Chip8
             stack:Stack::new(),
             curr_opcode:OpCode::new(0x0),
             graphics:Graphics::new(),
-            keys:KeyState::new(),
+            key:[0x0;16],
           }
   }
 
@@ -575,9 +581,8 @@ impl Chip8
 
     self.curr_opcode = OpCode::new(val);
 
-    println!("PC:{:#X}", self.regs.pc_reg);
+    println!("{}", self.regs);
     println!("opcode:{}", self.curr_opcode);
-    println!( "Opcode value: {:#X}", self.curr_opcode.val );
   }
 
   fn execute_opcode(&mut self)
@@ -939,8 +944,8 @@ impl Chip8
       {
 
         let X  = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
-
-        if self.keys.key[(self.regs.gen_purpose_regs[X]) as usize] != 0
+        
+        if self.key[(self.regs.gen_purpose_regs[X]) as usize] != 0
         {
           self.regs.pc_reg  += 4;
         }
@@ -954,7 +959,9 @@ impl Chip8
       {
         let X  = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
 
-        if self.keys.key[(self.regs.gen_purpose_regs[X]) as usize ] == 0
+        // loop {};
+
+        if self.key[(self.regs.gen_purpose_regs[X]) as usize ] == 0
         {
           self.regs.pc_reg  += 4;
         }
@@ -979,10 +986,11 @@ impl Chip8
         let mut key_press = false;
 
         println!("_FX0A");
+        loop {};
 
         for idx in 0..16
         {
-          if self.keys.key[idx] != 0
+          if self.key[idx] != 0
           {
             let X = ((self.curr_opcode.val & 0x0F00) >> 8) as usize;
 
@@ -1114,11 +1122,6 @@ impl Chip8
     }
   }
   
-  fn is_draw_flag(&self) -> bool
-  {
-    self.draw_flag
-  }
-      
   fn set_keys(&mut self, event:&Event)
   {
     // TODO: Catch Button Events
@@ -1129,22 +1132,22 @@ impl Chip8
 
       match button
       {
-        Button::Keyboard(Key::D1) => {self.keys.key[0] = 1; key = 0;},
-        Button::Keyboard(Key::D2) => {self.keys.key[1] = 1; key = 1;},
-        Button::Keyboard(Key::D3) => {self.keys.key[2] = 1; key = 2;},
-        Button::Keyboard(Key::D4) => {self.keys.key[3] = 1; key = 3;},
-        Button::Keyboard(Key::Q)  => {self.keys.key[4] = 1; key = 4;},
-        Button::Keyboard(Key::W)  => {self.keys.key[5] = 1; key = 5;},
-        Button::Keyboard(Key::E)  => {self.keys.key[6] = 1; key = 6;},
-        Button::Keyboard(Key::R)  => {self.keys.key[7] = 1; key = 7;},
-        Button::Keyboard(Key::A)  => {self.keys.key[8] = 1; key = 8;},
-        Button::Keyboard(Key::S)  => {self.keys.key[9] = 1; key = 9;},
-        Button::Keyboard(Key::D)  => {self.keys.key[10] = 1; key = 10;},
-        Button::Keyboard(Key::F)  => {self.keys.key[11] = 1; key = 11;},
-        Button::Keyboard(Key::Z)  => {self.keys.key[12] = 1; key = 12;},
-        Button::Keyboard(Key::X)  => {self.keys.key[13] = 1; key = 13;},
-        Button::Keyboard(Key::C)  => {self.keys.key[14] = 1; key = 14;},
-        Button::Keyboard(Key::V)  => {self.keys.key[15] = 1; key = 15;},
+        Button::Keyboard(Key::D1) => {self.key[0] = 1; key = 0;},
+        Button::Keyboard(Key::D2) => {self.key[1] = 1; key = 1;},
+        Button::Keyboard(Key::D3) => {self.key[2] = 1; key = 2;},
+        Button::Keyboard(Key::D4) => {self.key[3] = 1; key = 3;},
+        Button::Keyboard(Key::Q)  => {self.key[4] = 1; key = 4;},
+        Button::Keyboard(Key::W)  => {self.key[5] = 1; key = 5;},
+        Button::Keyboard(Key::E)  => {self.key[6] = 1; key = 6;},
+        Button::Keyboard(Key::R)  => {self.key[7] = 1; key = 7;},
+        Button::Keyboard(Key::A)  => {self.key[8] = 1; key = 8;},
+        Button::Keyboard(Key::S)  => {self.key[9] = 1; key = 9;},
+        Button::Keyboard(Key::D)  => {self.key[10] = 1; key = 10;},
+        Button::Keyboard(Key::F)  => {self.key[11] = 1; key = 11;},
+        Button::Keyboard(Key::Z)  => {self.key[12] = 1; key = 12;},
+        Button::Keyboard(Key::X)  => {self.key[13] = 1; key = 13;},
+        Button::Keyboard(Key::C)  => {self.key[14] = 1; key = 14;},
+        Button::Keyboard(Key::V)  => {self.key[15] = 1; key = 15;},
          _ => { valid_key = false; key = 99; },
       }
 
@@ -1154,10 +1157,12 @@ impl Chip8
         {
           if idx != key
           {
-            self.keys.key[idx] = 0;
+            self.key[idx] = 0;
           }
         }
       }
+
+      println!("Key:{}", key);
     }
   }
 }
@@ -1238,12 +1243,13 @@ impl Emulator
     {
       num_cycle += 1;
 
-      if cycle_limit == 1000 || num_cycle > cycle_limit
+      if cycle_limit < 1000 && num_cycle > cycle_limit
       {
-        break;
       }
-
-      self.chip8.emulate_cycle();
+      else
+      {
+        self.chip8.emulate_cycle();
+      }
       
       // Catch Window CloseEvent 
       if let Some(_) = event.close_args()
@@ -1257,7 +1263,7 @@ impl Emulator
                              clear([1.0; 4], graphics);
                            }); */
 
-      if self.chip8.is_draw_flag()
+      if self.chip8.draw_flag
       {
         self.draw_graphics(&event);
       }
@@ -1270,7 +1276,7 @@ impl Emulator
   {
     self.setup( game_name );
 
-    self.main_loop(11);
+    self.main_loop(1000);
   }
 }
 
